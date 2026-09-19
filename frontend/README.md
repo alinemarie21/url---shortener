@@ -1,6 +1,6 @@
 # UrlShortener — Encurtador de Links (frontend)
 
-Frontend em React + Vite. Todos os dados são simulados no navegador; não há chamadas reais de API.
+Frontend em React + Vite, integrado ao backend (`../backend`) via `src/api/api.js`.
 
 ## Rodando
 
@@ -16,10 +16,11 @@ npm run preview  # serve o build
 ```
 src/
 ├── main.jsx                  # entrada; envolve o app com <AuthProvider>
-├── App.jsx                   # sem sessão -> LoginForm, com sessão -> ShortenerPage
+├── App.jsx                   # sem token -> LoginForm, com token -> ShortenerPage
 ├── index.css                 # estilos (responsivo, com tema escuro automático)
-├── context/AuthContext.jsx   # sessão (useContext) persistida em localStorage
-├── services/mockApi.js       # ÚNICO ponto de integração com o backend
+├── context/AuthContext.jsx   # sessão (useContext) em localStorage; 401 -> logout
+├── api/api.js                # ÚNICO ponto de integração com o backend
+├── services/mockApi.js       # legado (simulação); não é mais usado
 ├── utils/validators.js       # validação do formulário e da URL
 └── components/
     ├── LoginForm.jsx         # Nome, Email, Senha + validação
@@ -29,21 +30,30 @@ src/
     └── CopyButton.jsx        # Clipboard API + feedback "Copiado!"
 ```
 
-## Integrando com o backend
+## Integração com o backend
 
-Toda a comunicação passa por `src/services/mockApi.js`. Cada função traz, comentado, o
-`fetch` equivalente:
+Toda a comunicação passa por `src/api/api.js`. A URL da API vem de `VITE_API_URL`
+(padrão `http://localhost:3000`).
 
-| Função                 | Endpoint futuro    |
-| ---------------------- | ------------------ |
-| `login(credentials)`   | `POST /login`      |
-| `shorten(url, token)`  | `POST /shorten`    |
-| `getStats(code)`       | `GET /stats/:code` |
+| Função                | Endpoint                          | Token? |
+| --------------------- | --------------------------------- | ------ |
+| `login(credentials)`  | `POST /auth/login`                | não    |
+| `register(data)`      | `POST /users`                     | não    |
+| `getUrl(code)`        | `GET /urls/:shortCode`            | não    |
+| `shorten(url)`        | `POST /urls`                      | **sim** |
+| `listUrls()`          | `GET /urls`                       | **sim** |
+| `getStats(code)`      | `GET /urls/:shortCode/stats`      | **sim** |
 
-Defina a URL da API em um `.env`: `VITE_API_URL=http://localhost:3000`.
+Autenticação:
+
+- O token é enviado como `Authorization: Bearer <token>` nas rotas autenticadas.
+- O frontend **não** conhece a `JWT_SECRET` e **não** valida nem decodifica o JWT; só o
+  backend valida. Se uma rota autenticada responder `401` (ou não houver token), a sessão é
+  encerrada e o usuário volta para o login.
+- `401` no login/cadastro (ex.: senha errada) só mostra a mensagem de erro.
 
 ## Observações
 
-- A senha **não** é armazenada; só `token` e `user` (nome/email) ficam no `localStorage`.
+- A senha **não** é armazenada; só `token` e `user` (email e, no cadastro, nome) ficam no `localStorage`.
 - O histórico vive em memória (estado do React) e some ao recarregar a página.
-- Clicar num link curto abre a URL original em nova aba e incrementa o contador (simulado).
+- Clicar num link curto abre o link do backend (`GET /:shortCode`), que registra o clique e redireciona; o contador é atualizado via `getStats`.

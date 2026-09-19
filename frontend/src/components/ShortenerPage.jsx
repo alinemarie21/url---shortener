@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Globe, Link2, LoaderCircle, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
-import { registerClick, shorten } from '../services/mockApi.js';
+import { getStats, shorten } from '../api/api.js';
 import { normalizeUrl } from '../utils/validators.js';
 import Brand from './Brand.jsx';
 import CopyButton from './CopyButton.jsx';
 import LinkList from './LinkList.jsx';
+
+const CLICK_SETTLE_MS = 800;
 
 export default function ShortenerPage() {
   const { session, logout } = useAuth();
@@ -15,7 +17,8 @@ export default function ShortenerPage() {
   const [links, setLinks] = useState([]); // histórico da sessão (mais recente primeiro)
 
   const latest = links[0];
-  const firstName = session.user.name.split(' ')[0];
+  // O login só devolve o token (sem nome); nesse caso usamos o começo do email.
+  const firstName = (session.user.name ?? session.user.email.split('@')[0]).split(' ')[0];
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -29,7 +32,7 @@ export default function ShortenerPage() {
     setError('');
     setLoading(true);
     try {
-      const link = await shorten(normalized, session.token);
+      const link = await shorten(normalized);
       setLinks((prev) => [link, ...prev]);
       setUrl('');
     } catch {
@@ -41,7 +44,10 @@ export default function ShortenerPage() {
 
   async function handleClick(code) {
     try {
-      const { clicks } = await registerClick(code);
+      // O clique é contabilizado pelo backend no redirecionamento do link curto;
+      // aguardamos um instante para o registro chegar antes de buscar o total.
+      await new Promise((resolve) => setTimeout(resolve, CLICK_SETTLE_MS));
+      const { clicks } = await getStats(code);
       setLinks((prev) => prev.map((l) => (l.code === code ? { ...l, clicks } : l)));
     } catch {
       // Contador é apenas informativo; falha silenciosa não deve travar a UI.
@@ -117,7 +123,7 @@ export default function ShortenerPage() {
               <div className="result-row">
                 <a
                   className="result-link"
-                  href={latest.originalUrl}
+                  href={latest.shortUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => handleClick(latest.code)}

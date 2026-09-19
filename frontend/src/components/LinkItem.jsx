@@ -9,7 +9,7 @@ export default function LinkItem({ link, onClick }) {
       <div className="link-info">
         <a
           className="link-short"
-          href={originalUrl}
+          href={shortUrl}
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => onClick(code)}
@@ -21,7 +21,7 @@ export default function LinkItem({ link, onClick }) {
         </span>
       </div>
       <div className="link-meta">
-        <span className="clicks" title="Cliques simulados">
+        <span className="clicks" title="Cliques">
           <MousePointerClick size={16} aria-hidden="true" />
           <strong>{clicks}</strong> {clicks === 1 ? 'clique' : 'cliques'}
         </span>

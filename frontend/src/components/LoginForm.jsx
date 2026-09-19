@@ -6,8 +6,15 @@ import Brand from './Brand.jsx';
 
 const INITIAL_VALUES = { name: '', email: '', password: '' };
 
+const SUBMIT_ERRORS = {
+  0: 'Não foi possível conectar ao servidor. Tente novamente.',
+  401: 'Email ou senha inválidos.',
+  409: 'Este email já está cadastrado.',
+};
+
 export default function LoginForm() {
-  const { login } = useAuth();
+  const { login, register } = useAuth();
+  const [mode, setMode] = useState('login'); // 'login' | 'register'
   const [values, setValues] = useState(INITIAL_VALUES);
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState('');
@@ -20,41 +27,51 @@ export default function LoginForm() {
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: undefined }));
   }
 
+  function toggleMode() {
+    setMode((prev) => (prev === 'login' ? 'register' : 'login'));
+    setErrors({});
+    setSubmitError('');
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
-    const found = validateAuthForm(values);
+    const found = validateAuthForm(values, mode);
     setErrors(found);
     setSubmitError('');
     if (Object.keys(found).length > 0) return;
 
     setLoading(true);
     try {
-      await login(values); // ao concluir, App troca para <ShortenerPage />
-    } catch {
-      setSubmitError('Não foi possível entrar. Tente novamente.');
+      await (isRegister ? register(values) : login(values)); // ao concluir, App troca para <ShortenerPage />
+    } catch (err) {
+      setSubmitError(SUBMIT_ERRORS[err.status] ?? 'Não foi possível continuar. Tente novamente.');
       setLoading(false);
     }
   }
+
+  const isRegister = mode === 'register';
 
   return (
     <main className="auth-page screen">
       <div className="card auth-card">
         <Brand />
-        <h1 className="auth-title">Entre ou crie sua conta</h1>
+        <h1 className="auth-title">{isRegister ? 'Crie sua conta' : 'Entre na sua conta'}</h1>
         <p className="muted">Encurte, copie e acompanhe seus links em um só lugar.</p>
 
         <form onSubmit={handleSubmit} noValidate className="form">
-          <Field
-            label="Nome"
-            name="name"
-            type="text"
-            icon={User}
-            autoComplete="name"
-            placeholder="Seu nome"
-            value={values.name}
-            error={errors.name}
-            onChange={handleChange}
-          />
+          {isRegister && (
+            <Field
+              label="Nome"
+              name="name"
+              type="text"
+              icon={User}
+              autoComplete="name"
+              placeholder="Seu nome"
+              value={values.name}
+              error={errors.name}
+              onChange={handleChange}
+            />
+          )}
           <Field
             label="Email"
             name="email"
@@ -71,8 +88,8 @@ export default function LoginForm() {
             name="password"
             type="password"
             icon={Lock}
-            autoComplete="current-password"
-            placeholder="Mínimo de 6 caracteres"
+            autoComplete={isRegister ? 'new-password' : 'current-password'}
+            placeholder={isRegister ? 'Mínimo de 6 caracteres' : 'Sua senha'}
             value={values.password}
             error={errors.password}
             onChange={handleChange}
@@ -88,14 +105,23 @@ export default function LoginForm() {
             {loading ? (
               <>
                 <LoaderCircle size={18} className="spin" aria-hidden="true" />
-                Entrando…
+                {isRegister ? 'Criando conta…' : 'Entrando…'}
               </>
             ) : (
               <>
                 <LogIn size={18} aria-hidden="true" />
-                Entrar
+                {isRegister ? 'Criar conta' : 'Entrar'}
               </>
             )}
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-ghost btn-block"
+            onClick={toggleMode}
+            disabled={loading}
+          >
+            {isRegister ? 'Já tenho conta' : 'Criar uma conta'}
           </button>
         </form>
       </div>

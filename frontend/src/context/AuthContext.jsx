@@ -1,14 +1,18 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import * as api from '../services/mockApi.js';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import * as api from '../api/api.js';
 
 const STORAGE_KEY = 'shortly:session';
 
 const AuthContext = createContext(null);
 
+// session = { token, user: { email, name? } } | null
+// O token é tratado como opaco: o frontend só checa se ele existe. Quem valida
+// (assinatura e expiração) é o backend, que responde 401 se estiver inválido.
 function loadSession() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
+    const session = raw ? JSON.parse(raw) : null;
+    return session?.token ? session : null;
   } catch {
     return null;
   }
@@ -24,21 +28,44 @@ function saveSession(session) {
 }
 
 export function AuthProvider({ children }) {
-  // session = { token, user: { name, email } } | null
   const [session, setSession] = useState(loadSession);
 
-  const login = useCallback(async (credentials) => {
-    const next = await api.login(credentials);
+  const startSession = useCallback((next) => {
     saveSession(next);
     setSession(next);
   }, []);
 
-  const logout = useCallback(() => {
-    saveSession(null);
-    setSession(null);
-  }, []);
+  const logout = useCallback(() => startSession(null), [startSession]);
 
-  const value = useMemo(() => ({ session, login, logout }), [session, login, logout]);
+  const login = useCallback(
+    async ({ email, password }) => {
+      const { token } = await api.login({ email, password });
+      startSession({ token, user: { email: email.trim().toLowerCase() } });
+    },
+    [startSession],
+  );
+
+  const register = useCallback(
+    async ({ name, email, password }) => {
+      const { token, user } = await api.register({ name, email, password });
+      startSession({ token, user });
+    },
+    [startSession],
+  );
+
+  // A API lê o token da sessão salva e, ao receber 401 de uma rota autenticada,
+  // encerra a sessão — o que faz o App voltar para o login.
+  useEffect(() => {
+    api.configureApi({
+      getToken: () => loadSession()?.token ?? null,
+      onUnauthorized: logout,
+    });
+  }, [logout]);
+
+  const value = useMemo(
+    () => ({ session, login, register, logout }),
+    [session, login, register, logout],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
