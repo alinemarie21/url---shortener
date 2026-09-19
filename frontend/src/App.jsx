@@ -1,12 +1,28 @@
+import { Navigate, Route, Routes } from 'react-router';
 import { useAuth } from './context/AuthContext.jsx';
 import LoginForm from './components/LoginForm.jsx';
+import ProtectedLayout from './components/ProtectedLayout.jsx';
 import ShortenerPage from './components/ShortenerPage.jsx';
+import StatsPage from './components/StatsPage.jsx';
 
-// "Roteamento" simples: sem token -> login; com token -> encurtador.
-// Só verificamos se o token existe; se o backend o recusar (401), a API encerra
-// a sessão e este componente volta a exibir o login.
-// Se o projeto crescer, troque por react-router e proteja a rota do encurtador.
-export default function App() {
+// Quem já tem sessão não precisa ver o login.
+function LoginRoute() {
   const { session } = useAuth();
-  return session?.token ? <ShortenerPage /> : <LoginForm />;
+  return session?.token ? <Navigate to="/" replace /> : <LoginForm />;
+}
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginRoute />} />
+
+      {/* Rotas protegidas: sem token, o ProtectedLayout redireciona para /login. */}
+      <Route element={<ProtectedLayout />}>
+        <Route index element={<ShortenerPage />} />
+        <Route path="stats/:shortCode" element={<StatsPage />} />
+      </Route>
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
 }

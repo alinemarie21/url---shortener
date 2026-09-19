@@ -6,7 +6,7 @@ import { authenticate } from '../middlewares/authenticate.js';
 const router = Router();
 
 router.post('/', authenticate, urlController.create);
-router.get('/', authenticate, urlController.index);
+router.get('/', authenticate, urlController.listByUser);
 router.get('/:shortCode', urlController.show);
 router.get('/:shortCode/stats', authenticate, statsController.show);
 

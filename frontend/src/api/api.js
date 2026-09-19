@@ -130,7 +130,7 @@ export async function getUrl(code) {
 /**
  * POST /urls (AUTENTICADA)
  * @param {string} originalUrl URL já validada/normalizada.
- * @returns {Promise<{ code: string, originalUrl: string, shortUrl: string, createdAt: string, clicks: number }>}
+ * @returns {Promise<{ code: string, originalUrl: string, shortUrl: string, createdAt: string }>}
  */
 export async function shorten(originalUrl) {
   const data = await request('/urls', {
@@ -138,10 +138,10 @@ export async function shorten(originalUrl) {
     body: { original_url: originalUrl },
     auth: true,
   });
-  return { ...toLink(data), clicks: 0 };
+  return toLink(data);
 }
 
-/** GET /urls (AUTENTICADA) — links do usuário logado (sem contagem de cliques). */
+/** GET /urls (AUTENTICADA) — todos os links do usuário logado, do mais novo ao mais antigo. */
 export async function listUrls() {
   const data = await request('/urls', { auth: true });
   return data.map(toLink);

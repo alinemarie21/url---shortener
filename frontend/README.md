@@ -15,20 +15,30 @@ npm run preview  # serve o build
 
 ```
 src/
-├── main.jsx                  # entrada; envolve o app com <AuthProvider>
-├── App.jsx                   # sem token -> LoginForm, com token -> ShortenerPage
+├── main.jsx                  # entrada; <BrowserRouter> + <AuthProvider>
+├── App.jsx                   # rotas: /login, / e /stats/:shortCode
 ├── index.css                 # estilos (responsivo, com tema escuro automático)
 ├── context/AuthContext.jsx   # sessão (useContext) em localStorage; 401 -> logout
 ├── api/api.js                # ÚNICO ponto de integração com o backend
 ├── services/mockApi.js       # legado (simulação); não é mais usado
 ├── utils/validators.js       # validação do formulário e da URL
 └── components/
-    ├── LoginForm.jsx         # Nome, Email, Senha + validação
-    ├── ShortenerPage.jsx     # input, botão "Encurtar", resultado, logout
-    ├── LinkList.jsx          # histórico da sessão
-    ├── LinkItem.jsx          # original, curto e cliques
+    ├── LoginForm.jsx         # login / cadastro + validação
+    ├── ProtectedLayout.jsx   # guard (sem token -> /login) + cabeçalho compartilhado
+    ├── ShortenerPage.jsx     # input, botão "Encurtar", resultado e lista dos seus links
+    ├── StatsPage.jsx         # estatísticas de um link (total, hoje, semana, mês)
+    ├── LinkList.jsx          # lista de links do usuário (vinda do backend)
+    ├── LinkItem.jsx          # original, curto e botão "Estatísticas"
     └── CopyButton.jsx        # Clipboard API + feedback "Copiado!"
 ```
+
+## Rotas
+
+| Rota                 | Página          | Acesso                           |
+| -------------------- | --------------- | -------------------------------- |
+| `/login`             | `LoginForm`     | pública (com sessão, vai para `/`) |
+| `/`                  | `ShortenerPage` | exige token, senão vai para `/login` |
+| `/stats/:shortCode`  | `StatsPage`     | exige token, senão vai para `/login` |
 
 ## Integração com o backend
 
@@ -55,5 +65,5 @@ Autenticação:
 ## Observações
 
 - A senha **não** é armazenada; só `token` e `user` (email e, no cadastro, nome) ficam no `localStorage`.
-- O histórico vive em memória (estado do React) e some ao recarregar a página.
-- Clicar num link curto abre o link do backend (`GET /:shortCode`), que registra o clique e redireciona; o contador é atualizado via `getStats`.
+- A lista de links vem do backend (`GET /urls`), então persiste entre visitas.
+- Clicar num link curto abre o link do backend (`GET /:shortCode`), que registra o clique e redireciona. Os números ficam na página de estatísticas (`getStats`).

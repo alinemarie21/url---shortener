@@ -8,7 +8,7 @@ export async function create(req, res) {
   res.status(201).location(`/urls/${url.short_code}`).json(url);
 }
 
-export async function index(req, res) {
+export async function listByUser(req, res) {
   const urls = await urlService.listByUser(req.user.id);
 
   res.json(urls);
