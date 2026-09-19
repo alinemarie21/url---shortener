@@ -2,6 +2,7 @@ import * as urlRepository from '../repositories/url.repository.js';
 import * as userRepository from '../repositories/user.repository.js';
 import * as clickRepository from '../repositories/click.repository.js';
 import {
+  ForbiddenError,
   NotFoundError,
   UnauthorizedError,
   ValidationError,
@@ -78,8 +79,24 @@ async function findUrlOrFail(shortCode) {
   return url;
 }
 
+export async function findOwnedUrlOrFail(shortCode, userId) {
+  const url = await findUrlOrFail(shortCode);
+
+  if (url.user_id !== userId) {
+    throw new ForbiddenError('you do not own this short code');
+  }
+
+  return url;
+}
+
 export async function findByShortCode(shortCode) {
   return toResponse(await findUrlOrFail(shortCode));
+}
+
+export async function listByUser(userId) {
+  const urls = await urlRepository.findAllByUserId(userId);
+
+  return urls.map(toResponse);
 }
 
 export async function registerClickAndGetOriginalUrl(shortCode) {

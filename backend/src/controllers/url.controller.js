@@ -8,6 +8,12 @@ export async function create(req, res) {
   res.status(201).location(`/urls/${url.short_code}`).json(url);
 }
 
+export async function index(req, res) {
+  const urls = await urlService.listByUser(req.user.id);
+
+  res.json(urls);
+}
+
 export async function show(req, res) {
   const url = await urlService.findByShortCode(req.params.shortCode);
 
