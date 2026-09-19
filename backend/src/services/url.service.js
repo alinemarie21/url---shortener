@@ -1,0 +1,88 @@
+import * as urlRepository from '../repositories/url.repository.js';
+import * as userRepository from '../repositories/user.repository.js';
+import * as clickRepository from '../repositories/click.repository.js';
+import { NotFoundError, ValidationError } from '../errors/http-errors.js';
+import { generateShortCode } from '../utils/short-code.js';
+import appConfig from '../config/app.js';
+
+const SHORT_CODE_LENGTH = 5;
+const MAX_SHORT_CODE_ATTEMPTS = 10;
+const MAX_ORIGINAL_URL_LENGTH = 255;
+
+function isValidHttpUrl(value) {
+  try {
+    const { protocol } = new URL(value);
+    return protocol === 'http:' || protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+function toResponse(url) {
+  return {
+    short_code: url.short_code,
+    short_url: `${appConfig.baseUrl}/${url.short_code}`,
+    original_url: url.original_url,
+    created_at: url.created_at,
+  };
+}
+
+async function generateUniqueShortCode() {
+  for (let attempt = 0; attempt < MAX_SHORT_CODE_ATTEMPTS; attempt++) {
+    const shortCode = generateShortCode(SHORT_CODE_LENGTH);
+
+    if (!(await urlRepository.existsByShortCode(shortCode))) {
+      return shortCode;
+    }
+  }
+
+  throw new Error('Could not generate a unique short code');
+}
+
+export async function shorten({ originalUrl, userId }) {
+  if (typeof originalUrl !== 'string' || !isValidHttpUrl(originalUrl.trim())) {
+    throw new ValidationError('original_url must be a valid http or https URL');
+  }
+  if (originalUrl.trim().length > MAX_ORIGINAL_URL_LENGTH) {
+    throw new ValidationError(
+      `original_url must have at most ${MAX_ORIGINAL_URL_LENGTH} characters`
+    );
+  }
+  if (!Number.isInteger(userId) || userId < 1) {
+    throw new ValidationError('user_id must be a positive integer');
+  }
+
+  if (!(await userRepository.findById(userId))) {
+    throw new NotFoundError('user not found');
+  }
+
+  const url = await urlRepository.create({
+    shortCode: await generateUniqueShortCode(),
+    userId,
+    originalUrl: originalUrl.trim(),
+  });
+
+  return toResponse(url);
+}
+
+async function findUrlOrFail(shortCode) {
+  const url = await urlRepository.findByShortCode(shortCode);
+
+  if (!url) {
+    throw new NotFoundError('short code not found');
+  }
+
+  return url;
+}
+
+export async function findByShortCode(shortCode) {
+  return toResponse(await findUrlOrFail(shortCode));
+}
+
+export async function registerClickAndGetOriginalUrl(shortCode) {
+  const url = await findUrlOrFail(shortCode);
+
+  await clickRepository.create({ shortCode: url.short_code });
+
+  return url.original_url;
+}
