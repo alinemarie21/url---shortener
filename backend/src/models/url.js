@@ -14,7 +14,7 @@ export default (sequelize) => {
         allowNull: false,
       },
       original_url: {
-        type: DataTypes.STRING,
+        type: DataTypes.TEXT,
       },
       created_at: {
         type: DataTypes.DATE,

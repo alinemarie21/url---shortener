@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Globe, Link2, LoaderCircle } from 'lucide-react';
-import { listUrls, shorten } from '../api/api.js';
+import { ApiError, listUrls, shorten } from '../api/api.js';
 import { normalizeUrl } from '../utils/validators.js';
 import CopyButton from './CopyButton.jsx';
 import LinkList from './LinkList.jsx';
@@ -46,8 +46,13 @@ export default function ShortenerPage() {
       setLatest(link);
       setList((prev) => ({ ...prev, links: [link, ...prev.links] }));
       setUrl('');
-    } catch {
-      setError('Não foi possível encurtar o link. Tente novamente.');
+    } catch (err) {
+      // 400 = validação do backend (ex.: link grande demais); a mensagem já é para o usuário.
+      setError(
+        err instanceof ApiError && err.status === 400
+          ? err.message
+          : 'Não foi possível encurtar o link. Tente novamente.',
+      );
     } finally {
       setLoading(false);
     }
@@ -67,7 +72,7 @@ export default function ShortenerPage() {
                 type="text"
                 inputMode="url"
                 className={error ? 'input has-error' : 'input'}
-                placeholder="https://exemplo.com/um/link/bem/longo"
+                placeholder="https://exemplo.com/"
                 aria-label="URL original"
                 aria-invalid={Boolean(error)}
                 aria-describedby={error ? 'url-error' : undefined}

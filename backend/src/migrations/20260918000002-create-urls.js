@@ -15,7 +15,7 @@ export async function up(queryInterface) {
       onDelete: 'CASCADE',
     },
     original_url: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
     },
     created_at: {
       type: DataTypes.DATE,

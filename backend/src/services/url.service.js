@@ -12,7 +12,7 @@ import appConfig from '../config/app.js';
 
 const SHORT_CODE_LENGTH = 5;
 const MAX_SHORT_CODE_ATTEMPTS = 10;
-const MAX_ORIGINAL_URL_LENGTH = 255;
+const MAX_ORIGINAL_URL_LENGTH = 2048;
 
 function isValidHttpUrl(value) {
   try {
@@ -49,9 +49,7 @@ export async function shorten({ originalUrl, userId }) {
     throw new ValidationError('original_url must be a valid http or https URL');
   }
   if (originalUrl.trim().length > MAX_ORIGINAL_URL_LENGTH) {
-    throw new ValidationError(
-      `original_url must have at most ${MAX_ORIGINAL_URL_LENGTH} characters`
-    );
+    throw new ValidationError('Tente com um link menor');
   }
 
   if (!(await userRepository.findById(userId))) {
