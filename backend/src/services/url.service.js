@@ -1,7 +1,11 @@
 import * as urlRepository from '../repositories/url.repository.js';
 import * as userRepository from '../repositories/user.repository.js';
 import * as clickRepository from '../repositories/click.repository.js';
-import { NotFoundError, ValidationError } from '../errors/http-errors.js';
+import {
+  NotFoundError,
+  UnauthorizedError,
+  ValidationError,
+} from '../errors/http-errors.js';
 import { generateShortCode } from '../utils/short-code.js';
 import appConfig from '../config/app.js';
 
@@ -48,12 +52,11 @@ export async function shorten({ originalUrl, userId }) {
       `original_url must have at most ${MAX_ORIGINAL_URL_LENGTH} characters`
     );
   }
-  if (!Number.isInteger(userId) || userId < 1) {
-    throw new ValidationError('user_id must be a positive integer');
-  }
 
   if (!(await userRepository.findById(userId))) {
-    throw new NotFoundError('user not found');
+    throw new UnauthorizedError(
+      'access token belongs to a user that no longer exists'
+    );
   }
 
   const url = await urlRepository.create({

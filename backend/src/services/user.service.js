@@ -1,12 +1,10 @@
 import * as userRepository from '../repositories/user.repository.js';
+import * as authService from './auth.service.js';
 import { ConflictError, ValidationError } from '../errors/http-errors.js';
 import { hashPassword } from '../utils/password.js';
+import { isFilledString, normalizeEmail } from '../utils/strings.js';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function isFilledString(value) {
-  return typeof value === 'string' && value.trim().length > 0;
-}
 
 function toResponse(user) {
   return {
@@ -28,7 +26,7 @@ export async function create({ name, email, password }) {
     throw new ValidationError('password is required');
   }
 
-  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedEmail = normalizeEmail(email);
 
   if (await userRepository.findByEmail(normalizedEmail)) {
     throw new ConflictError('email is already registered');
@@ -40,5 +38,8 @@ export async function create({ name, email, password }) {
     password: await hashPassword(password),
   });
 
-  return toResponse(user);
+  return {
+    user: toResponse(user),
+    ...authService.createTokenResponse(user.id),
+  };
 }

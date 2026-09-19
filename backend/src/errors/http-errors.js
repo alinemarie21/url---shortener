@@ -11,6 +11,12 @@ export class ValidationError extends HttpError {
   }
 }
 
+export class UnauthorizedError extends HttpError {
+  constructor(message) {
+    super(401, message);
+  }
+}
+
 export class NotFoundError extends HttpError {
   constructor(message) {
     super(404, message);

@@ -1,9 +1,9 @@
 import * as urlService from '../services/url.service.js';
 
 export async function create(req, res) {
-  const { original_url: originalUrl, user_id: userId } = req.body ?? {};
+  const { original_url: originalUrl } = req.body ?? {};
 
-  const url = await urlService.shorten({ originalUrl, userId });
+  const url = await urlService.shorten({ originalUrl, userId: req.user.id });
 
   res.status(201).location(`/urls/${url.short_code}`).json(url);
 }
