@@ -2,18 +2,9 @@ import { Sequelize } from 'sequelize';
 import defineUser from './user.js';
 import defineUrl from './url.js';
 import defineClick from './click.js';
+import databaseConfig from '../config/database.js';
 
-export const sequelize = new Sequelize(
-  process.env.DB_NAME || 'urlshortener',
-  process.env.DB_USER || 'postgres',
-  process.env.DB_PASSWORD || '111111',
-  {
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 5432,
-    dialect: 'postgres',
-    logging: false,
-  }
-);
+export const sequelize = new Sequelize(databaseConfig.development);
 
 export const User = defineUser(sequelize);
 export const Url = defineUrl(sequelize);
